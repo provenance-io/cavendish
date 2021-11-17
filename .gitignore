@@ -1,0 +1,13 @@
+# Node modules
+node_modules/
+
+# Build output
+lib
+lib.esm
+
+# macOS
+.DS_Store
+
+# IDEs
+*.iml
+.idea

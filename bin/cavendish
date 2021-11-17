@@ -1,0 +1,10 @@
+#!/usr/bin/env node
+'use strict';
+
+const Cavendish = require('../lib/cli.js').Cavendish;
+Cavendish
+  .run(process.argv)
+  .catch(err => {
+    console.error(`Error: ${err.message}`);
+    process.exit(1);
+});
