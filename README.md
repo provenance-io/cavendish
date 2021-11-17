@@ -40,7 +40,7 @@ $ npm install --save-dev @provenanceio/cavendish
 Starting a quick blockchain is as simple as running the `cavendish` command:
 
 ```sh
-$ cavendish
+$ npx cavendish
 
 Cavendish 1.7.5
 
@@ -67,10 +67,32 @@ By default 10 accounts are created and funded with hash using a pseudo-randomly 
 
 But every aspect of your local chain is configurable either through options to the `cavendish` command or a [config file](#config-file) in your working directory.
 
+## Blockchain Data
+
+Cavendish stores blockchain data in a `.cavendish` folder inside the working directory from where the `cavendish` command was run.
+
+If you need to start you chain from scratch, first stop the node:
+
+```sh
+$ npx cavendish stop
+```
+
+Then reset the blockchain data:
+
+```sh
+$ npx cavendish reset
+```
+
+You can also simply start the blockchain again, passing the `-f` or `--force` option, which will stop and reset the data before starting the node again:
+
+```sh
+$ npx cavendish start -f
+```
+
 ## Command Help
 
 ```sh
-$ cavendish --help
+$ npx cavendish --help
 
 Usage: cavendish [options] [command]
 
@@ -90,7 +112,7 @@ Commands:
 ### Start command
 
 ```sh
-cavendish start --help
+$ npx cavendish start --help
 
 Usage: cavendish start [options]
 
@@ -114,7 +136,7 @@ Options:
 ### Stop command
 
 ```sh
-cavendish stop --help
+$ npx cavendish stop --help
 
 Usage: cavendish stop [options]
 
@@ -127,7 +149,7 @@ Options:
 ### Reset command
 
 ```sh
-cavendish reset --help
+$ npx cavendish reset --help
 
 Usage: cavendish reset [options]
 
