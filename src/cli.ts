@@ -89,7 +89,7 @@ export class Cavendish {
             .description('Start a provenance blockchain node')
             .option('-c, --config <file>', 'the cavendish config file', DEFAULT_CONFIG_FILE)
             .option('-f, --force', 'force resets the blockchain')
-            .option('-b, --background', 'run the blockchain in the background')
+            .option('-b, --background [true|false]', 'run the blockchain in the background', true)
             .option('-m, --mnemonic <phrase>', 'bip39 mnemonic phrase for generating seed')
             .option('-a, --accounts <num>', 'total accounts to generate')
             .option('-r, --restrictedRootNames <name1,name2,...>', 'list of restricted root names to create')
@@ -345,14 +345,14 @@ export class Cavendish {
                 'start'
             ];
             var startOpts: child_process.ExecSyncOptions = { stdio: 'inherit' };
-            if (options.background) {
+            if (options.background && (options.background === true || options.background === 'true')) {
                 startArgs.unshift('nohup');
                 startArgs.push('&');
                 startOpts = { stdio: 'ignore' };
             }
             child_process.execSync(startArgs.join(' '), startOpts);
 
-            if (options.background) {
+            if (options.background && (options.background === true || options.background === 'true')) {
                 // wait for the process to settle
                 await delay(1000);
 
