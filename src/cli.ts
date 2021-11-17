@@ -19,7 +19,8 @@ const findProcess = require('find-process');
 import { 
     CavendishConfig, 
     MarkerAccess, 
-    PortConfig, 
+    PortConfig,
+    RootName, 
 } from './Config';
 import { LockFile } from './LockFile';
 import {
@@ -49,6 +50,10 @@ const PIO_HOME_DIRECTORY = '.cavendish';
 
 const HDPATH = "m/44'/1'/0'/0/0'";
 const HASH_DENOM = 'nhash';
+const NHASH_PER_HASH = 1000000000;
+
+const VALIDATOR_HASH_RATIO = 0.2;
+const VALIDATOR_DELEGATION_RATIO = 0.1;
 
 const DEFAULT_CONFIG_FILE = 'cavendish.json';
 const DEFAULT_ACCOUNTS = 10;
@@ -87,8 +92,8 @@ export class Cavendish {
             .option('-b, --background', 'run the blockchain in the background')
             .option('-m, --mnemonic <phrase>', 'bip39 mnemonic phrase for generating seed')
             .option('-a, --accounts <num>', 'total accounts to generate')
-            .option('-r, --restrictedRootNames <name1,name2...>', 'list of restricted root names to create')
-            .option('-u, --unrestrictedRootNames <name1,name2...>', 'list of unrestricted root names to create')
+            .option('-r, --restrictedRootNames <name1,name2,...>', 'list of restricted root names to create')
+            .option('-u, --unrestrictedRootNames <name1,name2,...>', 'list of unrestricted root names to create')
             .option('-s, --hashSupply <supply>', 'the total supply of nhash tokens')
             .option('-i, --chainId <id>', 'the provenance chain id')
             .option('-p, --rpcPort <port>', 'the port to use for RPC connections to the node')
@@ -171,7 +176,11 @@ export class Cavendish {
             }
 
             // override the config from the options
-            this.config = await Cavendish.overrideConfig(this.config, options);
+            try {
+                this.config = await Cavendish.overrideConfig(this.config, options);
+            } catch (err) {
+                return reject(err);
+            }
 
             // generate a pseudo-random mnemonic if one is not provided
             if (this.config.mnemonic === undefined) {
@@ -192,6 +201,13 @@ export class Cavendish {
                     return reject(new Error('The provenance node is already running'));
                 }
             }
+
+            // calculate the hash assigned to the validator at genesis
+            const hashSupply = new BigNumber(this.config.hashSupply);
+            const validatorHash = hashSupply.times(VALIDATOR_HASH_RATIO).integerValue(BigNumber.ROUND_DOWN);
+            const validatorHashDelegation = validatorHash.times(VALIDATOR_DELEGATION_RATIO).integerValue(BigNumber.ROUND_DOWN);
+            const accountsHashSupply = hashSupply.minus(validatorHash);
+            const accountHash = accountsHashSupply.dividedBy(this.config.accounts).integerValue(BigNumber.ROUND_DOWN);
 
             if (!this.lockFile.initialized || options.force) {
 
@@ -230,14 +246,13 @@ export class Cavendish {
                     '--home', this.pioHome,
                     'add-genesis-account',
                     'validator',
-                    `2250000000000000000nhash`, // TODO: from config
+                    `${validatorHash.toFixed()}nhash`,
                     '--keyring-backend', 'test'
                 ].join(' '), EXEC_SYNC_OPTIONS);
 
                 // generate the accounts
                 for(var key = 0; key < this.config.accounts; key++) {
-                    // TODO: calculate hash to fund
-                    this.addGenesisAccountFromMnemonic(`account${key}`, this.config.mnemonic, 0, key, '1000000000000000000');
+                    this.addGenesisAccountFromMnemonic(`account${key}`, this.config.mnemonic, 0, key, accountHash.toFixed());
                 }
 
                 // create the root names
@@ -246,7 +261,7 @@ export class Cavendish {
                 });
 
                 // create the hash marker
-                this.addGenesisMarker(HASH_DENOM, new BigNumber(this.config.hashSupply), 'validator', [
+                this.addGenesisMarker(HASH_DENOM, hashSupply, 'validator', [
                     MarkerAccess.ADMIN,
                     MarkerAccess.BURN,
                     MarkerAccess.DEPOSIT,
@@ -259,7 +274,7 @@ export class Cavendish {
                     '--home', this.pioHome,
                     'gentx',
                     'validator',
-                    `100000000000000nhash`, // TODO: ???
+                    `${validatorHashDelegation.toFixed()}nhash`,
                     '--keyring-backend', 'test',
                     `--chain-id=${this.config.chainId}`
                 ].join(' '), EXEC_SYNC_OPTIONS);
@@ -278,7 +293,9 @@ export class Cavendish {
                 ].join(' '), EXEC_SYNC_OPTIONS);
 
                 // set configuration
-                this.setConfig('rpc.laddr', 'tcp://0.0.0.0:26657');
+                this.setConfig('rpc.laddr', `tcp://0.0.0.0:${this.config.ports.rpc}`);
+                this.setConfig('grpc.address', `0.0.0.0:${this.config.ports.grpc}`);
+                this.setConfig('grpc-web.enable', 'false');
                 this.setConfig('api.enable', 'true');
                 this.setConfig('api.swagger', 'true');
 
@@ -300,9 +317,11 @@ export class Cavendish {
             // output the available accounts
             console.log('Available Accounts');
             console.log('==================');
+            const numSpaces = (Math.floor(this.config.accounts / 10) + 4);
             for(var idx = 0; idx < this.config.accounts; idx++) {
                 const key = accounts.getKey(0, idx);
-                console.log(`(${idx}) ${key.address}`);
+                const accountIndex = `(${idx})`.toString().padEnd(numSpaces);
+                console.log(`${accountIndex}${key.address} (${accountHash.toFixed()} nhash)`);
             }
             console.log('');
 
@@ -510,13 +529,19 @@ export class Cavendish {
             }
             if (options.restrictedRootNames !== undefined) {
                 options.restrictedRootNames.split(',').forEach((restrictedName) => {
-                    // TODO: check if name already exists... if so, and restriction doesn't match, then error
+                    const name = Cavendish.findName(config.rootNames, restrictedName);
+                    if (name !== undefined && !name.restrict) {
+                        return reject(new Error(`Configuration does not match the already initialized blockchain data.\nReset the blockchain data with 'cavendish reset' first.`));
+                    }
                     config.rootNames.push({ name: restrictedName, restrict: true });
                 });
             }
             if (options.unrestrictedRootNames !== undefined) {
                 options.unrestrictedRootNames.split(',').forEach((unrestrictedName) => {
-                    // TODO: check if name already exists... if so, and restriction doesn't match, then error
+                    const name = Cavendish.findName(config.rootNames, unrestrictedName);
+                    if (name !== undefined && name.restrict) {
+                        return reject(new Error(`Configuration does not match the already initialized blockchain data.\nReset the blockchain data with 'cavendish reset' first.`));
+                    }
                     config.rootNames.push({ name: unrestrictedName, restrict: false });
                 });
             }
@@ -543,6 +568,18 @@ export class Cavendish {
 
             return resolve(config);
         });
+    }
+
+    private static findName(names: RootName[], name: string): (RootName | undefined) {
+        var foundName: RootName = undefined;
+
+        names.forEach((nameItem) => {
+            if (nameItem.name === name) {
+                foundName = nameItem;
+            }
+        });
+
+        return foundName;
     }
 
     private static getProvenancedBinary(): string {
