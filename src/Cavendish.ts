@@ -10,6 +10,7 @@ import * as fs from 'fs';
 import * as _ from 'lodash';
 import * as os from 'os';
 import * as path from 'path';
+import * as waitPort from 'wait-port';
 
 import { 
     CavendishConfig,
@@ -293,6 +294,30 @@ export class Cavendish {
 
             if (options.background && (options.background === true || options.background === 'true')) {
                 // wait for the process to settle
+                try {
+                    const grpcPortOpened = await waitPort({
+                        host: 'localhost',
+                        port: cavendishConfig.ports.grpc,
+                        timeout: 10000,
+                        output: (options.verbose ? 'dots' : 'silent')
+                    });
+
+                    if (grpcPortOpened) {
+                        const pid = await Cavendish.findProvenancePIDByHomeDir(this.pioHome);
+                        if (pid === -1) {
+                            return reject(new Error('Failed to start the provenance blockchain'));
+                        } else {
+                            // save the PID to the lock file
+                            this.lockFile.pid = pid;
+                        }
+                    } else {
+                        return reject(new Error('Failed to start the provenance blockchain'));
+                    }
+                } catch(err) {
+                    return reject(new Error('Failed to start the provenance blockchain'));
+                }
+
+                /*
                 await delay(1000);
 
                 const pid = await Cavendish.findProvenancePIDByHomeDir(this.pioHome);
@@ -302,6 +327,7 @@ export class Cavendish {
                     // save the PID to the lock file
                     this.lockFile.pid = pid;
                 }
+                */
             }
 
             return resolve();
