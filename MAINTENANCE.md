@@ -47,4 +47,30 @@ $ install_name_tool -change \
 
 ## Linux
 
-???
+### Install dependencies
+
+```sh
+$ sudo pacman -Sy nodejs npm
+$ sudo pacman -Sy make
+$ sudo pacman -Sy gcc
+```
+
+### Build
+
+```sh
+$ git clone git@github.com:provenance-io/provenance.git
+$ cd provenance
+$ git checkout v1.7.5
+$ make build
+```
+
+Copy `build/provenanced` to `bin/x64/darwin/provenanced`.
+
+### Copy dylibs
+
+In the cavendish directory:
+
+```sh
+$ cp -L /usr/lib/libleveldb.so.1 ./bin/x64/linux
+$ cp -L /usr/lib/libsnappy.so.1 ./bin/x64/linux
+```
