@@ -23,7 +23,6 @@
     "scripts": {
         "build": "npx tsc",
         "clean": "npx rimraf lib",
-        "postinstall": "npm run build",
         "prepare": "npm run rebuild",
         "rebuild": "npm run clean && npm run build",
         "test": "export NODE_ENV=test && mocha --require ts-node/register test/**/*.test.ts"
