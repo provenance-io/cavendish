@@ -21,7 +21,7 @@
     },
     "license": "Apache-2.0",
     "scripts": {
-        "build": "tsc",
+        "build": "npx tsc",
         "clean": "npx rimraf lib",
         "postinstall": "npm run build",
         "prepare": "npm run rebuild",
@@ -52,6 +52,7 @@
         "ps-tree": "^1.2.0",
         "rimraf": "^3.0.2",
         "ripemd160": "^2.0.2",
-        "tiny-secp256k1": "^2.1.1"
+        "tiny-secp256k1": "^2.1.1",
+        "wait-port": "^0.2.9"
     }
 }

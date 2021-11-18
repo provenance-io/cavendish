@@ -25,10 +25,10 @@ export interface PortConfig {
 
 export interface CavendishConfig {
     mnemonic?: string;
-    accounts: number,
-    chainId: string,
-    ports: PortConfig,
-    hashSupply: string,
-    rootNames: RootName[],
-    markers: MarkerConfig[]
+    accounts?: number,
+    chainId?: string,
+    ports?: PortConfig,
+    hashSupply?: string,
+    rootNames?: RootName[],
+    markers?: MarkerConfig[]
 };
