@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 'use strict';
 
-const Cavendish = require('../lib/cli.js').Cavendish;
+const Cavendish = require('../lib/cli.js').CavendishCLI;
 Cavendish
   .run(process.argv)
   .catch(err => {
