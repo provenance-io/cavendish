@@ -227,10 +227,12 @@ export class Cavendish {
                 ].join(' '), EXEC_SYNC_OPTIONS);
 
                 // set configuration
-                this.setConfig('rpc.laddr', `tcp://0.0.0.0:${cavendishConfig.ports.rpc}`);
-                this.setConfig('grpc.address', `0.0.0.0:${cavendishConfig.ports.grpc}`);
+                this.setConfig('rpc.laddr', `tcp://localhost:${cavendishConfig.ports.rpc}`);
+                this.setConfig('p2p.laddr', 'tcp://localhost:26656');
+                this.setConfig('grpc.address', `localhost:${cavendishConfig.ports.grpc}`);
                 this.setConfig('grpc-web.enable', 'false');
                 this.setConfig('api.enable', 'true');
+                this.setConfig('api.address', 'tcp://localhost:1317');
                 this.setConfig('api.swagger', 'true');
 
                 // we're now initialized
