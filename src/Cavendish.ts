@@ -99,6 +99,9 @@ export class Cavendish {
         return new Promise<void>(async (resolve, reject) => {
             var cavendishConfig: CavendishConfig;
 
+            // merge options with default
+            options = _.merge(options, DEFAULT_OPTIONS);
+
             // get the config
             if (typeof config === 'string') {
                 try {
@@ -383,7 +386,7 @@ export class Cavendish {
         });
     }
 
-    private static getProvenancedBinary(): string {
+    public static getProvenancedBinary(): string {
         return path.join(
             __dirname, 
             '..', 
