@@ -100,7 +100,9 @@ export class Cavendish {
             var cavendishConfig: CavendishConfig;
 
             // merge options with default
-            options = _.merge(options, DEFAULT_OPTIONS);
+            console.dir(options);
+            options = _.merge(DEFAULT_OPTIONS, options);
+            console.dir(options);
 
             // get the config
             if (typeof config === 'string') {
