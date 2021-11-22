@@ -2,13 +2,14 @@
     "name": "@provenanceio/cavendish",
     "description": "One-step Provenance blockchain",
     "homepage": "https://provenance.io/",
-    "version": "1.7.5",
+    "version": "1.7.6beta1",
     "private": false,
     "main": "lib/index.js",
     "types": "lib/index.d.ts",
     "module": "lib.esm/index.js",
     "bin": {
-        "cavendish": "./bin/cavendish"
+        "cavendish": "./bin/cavendish",
+        "provenanced": "./bin/provenanced"
     },
     "files": [
         "bin",
@@ -23,7 +24,7 @@
     "scripts": {
         "build": "npx tsc",
         "clean": "npx rimraf lib",
-        "prepare": "npm run rebuild",
+        "prepublishOnly": "npm run build",
         "rebuild": "npm run clean && npm run build",
         "test": "export NODE_ENV=test && mocha --require ts-node/register test/**/*.test.ts"
     },

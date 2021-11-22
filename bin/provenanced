@@ -1,0 +1,17 @@
+#!/usr/bin/env node
+'use strict';
+
+const child_process = require('child_process');
+
+const Cavendish = require('../lib/Cavendish').Cavendish;
+
+const provenanced = Cavendish.getProvenancedBinary();
+process.argv.splice(0, 2);
+process.argv.unshift(provenanced);
+
+const child = child_process.exec(process.argv.join(' '));
+child.stdout.pipe(process.stdout)
+child.stderr.pipe(process.stderr)
+child.on('exit', function() {
+    process.exit();
+});
