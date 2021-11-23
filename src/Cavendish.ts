@@ -100,9 +100,7 @@ export class Cavendish {
             var cavendishConfig: CavendishConfig;
 
             // merge options with default
-            console.dir(options);
             options = _.merge(DEFAULT_OPTIONS, options);
-            console.dir(options);
 
             // get the config
             if (typeof config === 'string') {
@@ -339,6 +337,9 @@ export class Cavendish {
                 // kill the procenance node
                 await killProcess(pid);
 
+                // wait for the provenance node to stop (10s timeout)
+                await Cavendish.waitForPid(pid, 10000);
+
                 // clear the PID from the lock file
                 this.lockFile.pid = undefined;
 
@@ -431,6 +432,33 @@ export class Cavendish {
             }).catch((err) => {
                 return reject(err);
             })
+        });
+    }
+
+    private static waitForPid(pid: number, timeoutMs?: number): Promise<void> {
+        return new Promise<void>((resolve, reject) => {
+            var timeout = undefined;
+            if (timeoutMs !== undefined) {
+                timeout = setTimeout(() => {
+                    clearInterval(interval);
+                    return reject(new Error(`Timeout waiting for process '${pid}' to terminate`));
+                }, timeoutMs);
+            }
+
+            const interval = setInterval(async () => {
+                try {
+                    const processes = await findProcess('pid', pid, true);
+                    if (processes.length === 0) {
+                        if (timeout !== undefined) {
+                            clearTimeout(timeout);
+                        }
+                        clearInterval(interval);
+                        return resolve();
+                    }
+                } catch(err) {
+                    return reject(err);
+                }
+            }, 250);
         });
     }
 
