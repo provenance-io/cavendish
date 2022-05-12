@@ -1,0 +1,127 @@
+#!/usr/bin/env node
+'use strict';
+
+const download = require('download');
+const fs = require('fs-extra');
+const path = require('path');
+const process = require('process');
+const unzipper = require('unzipper');
+
+const package_json_path = path.join(process.cwd(), 'package.json');
+const bin_path = path.join(process.cwd(), 'bin');
+const build_path = path.join(process.cwd(), '.build');
+
+// purge the build intermediate directory
+if (fs.existsSync(build_path)) {
+    fs.rmSync(build_path, { recursive: true });
+}
+fs.ensureDirSync(build_path);
+
+const packageJson = JSON.parse(fs.readFileSync(package_json_path));
+const version = packageJson.version;
+const downloadUrlExpr = packageJson.provenance.downloadUrl;
+
+const downloadAndExtract = function (arch, platform) {
+    return new Promise((resolve, reject) => {
+        const zip_file_url = downloadUrlExpr.replace(/%VERSION%/g, version).replace(/%PLATFORM%/g, platform).replace(/%ARCH%/g, arch);
+        const zip_filename = path.basename(new URL(zip_file_url).pathname);
+        const zip_file_path = path.join(build_path, zip_filename);
+        const zip_extraction_path = path.join(build_path, path.basename(zip_filename, '.zip'));
+
+        if (fs.existsSync(zip_file_path)) {
+            fs.unlinkSync(zip_file_path);
+        }
+
+        console.log(`Downloading ${zip_filename}...`);
+
+        download(zip_file_url, build_path).then(() => {
+            console.log(`Finished downloading ${zip_filename}`);
+
+            if (fs.existsSync(zip_extraction_path)) {
+                fs.rmSync(zip_extraction_path, { recursive: true });
+            }
+            fs.ensureDirSync(zip_extraction_path);
+
+            console.log(`Extracting ${zip_filename}...`);
+            fs.createReadStream(zip_file_path)
+                .pipe(unzipper.Extract({ path: zip_extraction_path }))
+                .on('entry', (entry) => {
+                    entry.autodrain();
+                })
+                .promise()
+                .then(() => {
+                    console.log(`Finished extracting ${zip_filename}`);
+
+                    console.log(`Installing ${zip_filename}...`);
+
+                    const bin_platform_path = path.join(bin_path, arch, platform);
+                    fs.ensureDirSync(bin_platform_path);
+
+                    const zip_extraction_path_base = path.join(zip_extraction_path, 'bin');
+
+                    readdirSyncRecursive(zip_extraction_path).forEach(async (extracted_file) => {
+                        await fs.chmod(extracted_file, '755');
+
+                        const relative_path = extracted_file.replace(`${zip_extraction_path_base}${path.sep}`, '');
+                        const dest_file_path = path.join(bin_platform_path, relative_path);
+
+                        fs.ensureDirSync(path.dirname(dest_file_path));
+                        fs.copyFileSync(extracted_file, dest_file_path);
+                    });
+
+                    console.log(`Finished installing ${zip_filename}`);
+                    resolve();
+                }).catch((err) => {
+                    reject(new Error(`Failed to extract ${zip_filename} : ${err.message}`));
+                });
+        }).catch((err) => {
+            reject(new Error(`Failed to download ${zip_filename} : ${err.message}`));
+        });
+    });
+}
+
+const readdirSyncRecursive = function (dirPath, arrayOfFiles) {
+    const files = fs.readdirSync(dirPath);
+
+    arrayOfFiles = arrayOfFiles || [];
+
+    files.forEach((file) => {
+        const filepath = path.join(dirPath, file);
+        if (fs.statSync(filepath).isDirectory()) {
+            arrayOfFiles = readdirSyncRecursive(filepath, arrayOfFiles)
+        } else {
+            arrayOfFiles.push(filepath)
+        }
+    });
+
+    return arrayOfFiles;
+}
+
+console.log(`Cavendish version: ${version}`);
+console.log(``);
+
+const download_promises = [];
+Object.keys(packageJson.provenance.plaforms).forEach((arch) => {
+    packageJson.provenance.plaforms[arch].forEach((platform) => {
+        download_promises.push(downloadAndExtract(arch, platform));
+    });
+});
+
+Promise.all(download_promises)
+    .then(() => {
+        console.log(``);
+
+        Object.keys(packageJson.provenance.aliases).forEach((arch) => {
+            packageJson.provenance.aliases[arch].forEach((alias) => {
+                console.log(`Creating alias ${alias} -> ${arch}`);
+
+                const arch_path = path.join(bin_path, arch);
+                const alias_path = path.join(bin_path, alias);
+
+                fs.ensureSymlinkSync(arch_path, alias_path, 'dir');
+            });
+        });
+    }).catch((err) => {
+        console.error(err.message);
+        process.exit(-1);
+    });

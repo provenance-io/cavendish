@@ -1,9 +1,17 @@
 # Node modules
 node_modules/
 
+# Build intermediate
+.build
+
 # Build output
 lib
 lib.esm
+
+# Binaries
+bin/
+!bin/cavendish
+!bin/provenanced
 
 # macOS
 .DS_Store
