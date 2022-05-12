@@ -1,0 +1,25 @@
+#!/usr/bin/env node
+'use strict';
+
+const fs = require('fs-extra');
+const path = require('path');
+const process = require('process');
+
+const package_json_path = path.join(process.cwd(), 'package.json');
+const bin_path = path.join(process.cwd(), 'bin');
+
+const packageJson = JSON.parse(fs.readFileSync(package_json_path));
+
+Object.keys(packageJson.provenance.plaforms).forEach((arch) => {
+    const bin_arch_path = path.join(bin_path, arch);
+    if (fs.existsSync(bin_arch_path)) {
+        fs.removeSync(bin_arch_path);
+    }
+});
+
+Object.keys(packageJson.provenance.aliases).forEach((arch) => {
+    packageJson.provenance.aliases[arch].forEach((alias) => {
+        const bin_alias_path = path.join(bin_path, alias);
+        fs.unlinkSync(bin_alias_path);
+    });
+});

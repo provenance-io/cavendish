@@ -58,6 +58,10 @@ const DEFAULT_OPTIONS: CavendishOptions = {
     verbose: false
 };
 
+const ARCH_ALIASES = {
+    "x64": "amd64"
+};
+
 export const DEFAULT_ACCOUNTS = 10;
 export const DEFAULT_CHAIN_ID = 'chain-local';
 export const DEFAULT_RPC_PORT = 26657;
@@ -389,12 +393,21 @@ export class Cavendish {
         });
     }
 
+    public static getArch(): string {
+        const arch = os.arch();
+        if (arch in ARCH_ALIASES) {
+            return ARCH_ALIASES[arch];
+        } else {
+            return arch;
+        }
+    }
+
     public static getProvenancedBinary(): string {
         return path.join(
             __dirname, 
             '..', 
             'bin', 
-            os.arch(), 
+            Cavendish.getArch(), 
             os.platform(),
             PROVENANCED_CLIENT_BINARY
         );
