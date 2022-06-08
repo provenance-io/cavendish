@@ -22,7 +22,8 @@
     },
     "license": "Apache-2.0",
     "scripts": {
-        "build": "npx tsc && ./scripts/install-bins",
+        "compile": "npx tsc",
+        "build": "npm run compile && ./scripts/install-bins",
         "clean": "npx rimraf lib && ./scripts/uninstall-bins",
         "prepublishOnly": "npm run build",
         "rebuild": "npm run clean && npm run build",
