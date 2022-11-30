@@ -20,7 +20,7 @@ enum CavendishCommand {
     RESET
 }
 
-export const CAVENDISH_CLI_VERSION = '1.12.2';
+export const CAVENDISH_CLI_VERSION = '1.13.0';
 
 export class CavendishCLI {
 
